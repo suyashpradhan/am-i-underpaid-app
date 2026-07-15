@@ -22,7 +22,6 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
         <div className="share-sheet__header">
           <div>
             <h3 className="share-sheet__title">Share your result</h3>
-            <p className="share-sheet__subtitle">One tap. This is how your friends find out too.</p>
           </div>
           <button className="share-sheet__close" onClick={onClose} type="button">&times;</button>
         </div>
@@ -51,7 +50,7 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
         </div>
 
         <button type="button" className="share-sheet__tip-nudge" onClick={onStartTip}>
-          Free tool — if it helped, buy me a coffee
+          Free tool! If it helped, buy me a coffee
         </button>
       </div>
     </div>

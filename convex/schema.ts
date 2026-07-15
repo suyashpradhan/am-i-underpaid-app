@@ -56,4 +56,21 @@ export default defineSchema({
     currency: v.string(),
     dodoRef: v.string(),
   }).index("by_dodoRef", ["dodoRef"]), // idempotency, wired in Phase 4
+
+  // Anonymous trust signal. One row per click keeps the data auditable and
+  // lets the product owner inspect problem roles directly in Convex.
+  resultFeedback: defineTable({
+    role: v.string(),
+    city: v.string(),
+    verdict: v.union(
+      v.literal("underpaid"),
+      v.literal("fair"),
+      v.literal("above"),
+    ),
+    reason: v.literal("incorrect"),
+  }).index("by_reason", ["reason"]),
+  resultFeedbackStats: defineTable({
+    key: v.literal("incorrect"),
+    count: v.number(),
+  }).index("by_key", ["key"]),
 });

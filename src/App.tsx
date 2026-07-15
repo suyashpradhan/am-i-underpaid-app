@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { usePostHog } from "@posthog/react";
 import { api } from "../convex/_generated/api";
 import "./index.css";
@@ -42,27 +42,14 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("landing");
   const [formData, setFormData] = useState<any>(null);
   const [resultData, setResultData] = useState<any>(null);
-  const [tipAmount, setTipAmount] = useState("₹30");
+  const [tipAmount, setTipAmount] = useState("₹20");
   const [paymentPhase, setPaymentPhase] = useState("redirect");
   const [shareOpen, setShareOpen] = useState(false);
 
   const getVerdict = useAction(api.payCheck.getVerdict);
+  const reportIncorrect = useMutation(api.feedback.reportIncorrect);
   const poolCount = useQuery(api.checks.count); // live reactive counter
   const posthog = usePostHog();
-
-  const levers = useQuery(
-    api.levers.getLevers,
-    resultData
-      ? {
-          discipline: formData?.discipline || "Frontend",
-          city: (formData?.city || "Bangalore").trim(),
-          yearsExperience: Number(formData?.years) || 0,
-          skills: formData?.skills || [],
-          workMode: formData?.workMode || "ic",
-          workDescription: formData?.workDescription || "",
-        }
-      : "skip",
-  );
 
   useEffect(() => {
     posthog?.capture("landing_view");
@@ -193,9 +180,6 @@ export default function App() {
           <>
             <Result
               {...resultData}
-              levers={
-                levers ?? { skills: [], cities: [], seniority: [], roles: [] }
-              }
               poolRank={poolCount ?? undefined}
               tipAmount={tipAmount}
               onTipAmountChange={setTipAmount}
@@ -208,12 +192,23 @@ export default function App() {
                 setShareOpen(true);
               }}
               onStartTip={startTip}
+              onFeedback={async () => {
+                await reportIncorrect({
+                  role: resultData.roleLabel,
+                  city: resultData.city,
+                  verdict: resultData.verdict,
+                });
+                posthog?.capture("result_feedback", {
+                  reason: "incorrect",
+                  role: resultData.roleLabel,
+                });
+              }}
             />
             {shareOpen && (
               <ShareSheet
                 shareCardProps={shareCardProps}
                 caption={captionFor(resultData)}
-                link={`amiunderpaid.in`}
+                link={`am-i-underpaid.in`}
                 onClose={() => setShareOpen(false)}
                 onStartTip={startTip}
               />
@@ -248,7 +243,9 @@ export default function App() {
         {screen === "edge-error" && (
           <EdgeStates
             variant="error"
-            city={resultData?.city || (formData?.city || "").trim() || "your city"}
+            city={
+              resultData?.city || (formData?.city || "").trim() || "your city"
+            }
             roleLabel={resultData?.roleLabel || "professionals"}
             currentAmount={resultData?.currentAmount}
             bandLow={resultData?.bandLow}
@@ -309,8 +306,8 @@ function mapResult(res: any, form: any, currentPay: number) {
 function captionFor(r: any) {
   const gap = Math.max(0, r.quoteAmount - r.currentAmount);
   if (r.verdict === "underpaid")
-    return `Just found out I'm underpaid by ₹${gap}L. Check yours: amiunderpaid.in`;
+    return `Just found out I'm underpaid by ₹${gap}L. Check yours: am-i-underpaid.in`;
   if (r.verdict === "fair")
-    return `Turns out I'm right at market as a ${r.roleLabel} in ${r.city}. Check yours: amiunderpaid.in`;
-  return `Turns out I'm paid above market as a ${r.roleLabel} in ${r.city}. Check yours: amiunderpaid.in`;
+    return `Turns out I'm right at market as a ${r.roleLabel} in ${r.city}. Check yours: am-i-underpaid.in`;
+  return `Turns out I'm paid above market as a ${r.roleLabel} in ${r.city}. Check yours: am-i-underpaid.in`;
 }

@@ -95,6 +95,41 @@ function usableBand(data: LinkupResponse["data"]): data is {
   );
 }
 
+function relevantSources(
+  sources: LinkupResponse["sources"],
+  role: string,
+): LinkupResponse["sources"] {
+  const normalizedRole = role.toLowerCase();
+  const roleFamilies: Array<{ test: RegExp; terms: RegExp }> = [
+    {
+      test: /solutions? engineer|pre[- ]?sales/,
+      terms: /solutions? engineer|sales engineer|pre[- ]?sales engineer|customer engineer/,
+    },
+    {
+      test: /platform|infrastructure|devops|site reliability|\bsre\b/,
+      terms: /platform engineer|infrastructure engineer|devops|site reliability|\bsre\b|developer platform/,
+    },
+    {
+      test: /forward deployed/,
+      terms: /forward deployed|deployment strategist|customer engineer|solutions? engineer/,
+    },
+  ];
+  const family = roleFamilies.find(({ test }) => test.test(normalizedRole));
+  const genericWords = new Set([
+    "senior", "junior", "lead", "leader", "head", "vp", "vice", "president",
+    "engineer", "engineering", "manager", "india", "remote",
+  ]);
+  const roleTerms = normalizedRole
+    .split(/[^a-z0-9+#.]+/)
+    .filter((word) => word.length > 2 && !genericWords.has(word));
+
+  return (sources ?? []).filter((source) => {
+    const evidence = `${source.name} ${source.url} ${source.content ?? ""}`.toLowerCase();
+    if (family) return family.terms.test(evidence);
+    return roleTerms.length === 0 || roleTerms.some((term) => evidence.includes(term));
+  });
+}
+
 export const getVerdict = action({
   args: {
     isFreelancer: v.boolean(),
@@ -150,7 +185,10 @@ export const getVerdict = action({
         `seniority (e.g. levels.fyi role/seniority tiers, published salary guides with role and ` +
         `experience bands) over sites that report a single all-levels or all-role average. ` +
         `Cross-check multiple current sources when possible. Return INR LPA numbers, not rupees, ` +
-        `monthly pay, or USD. Do not invent a band when the evidence does not support one.`;
+        `monthly pay, or USD. Do not invent a band when the evidence does not support one. ` +
+        `Role-family guardrail: a Solution Engineer is a customer-facing pre-sales/technical solutions role, ` +
+        `not a Software Engineer. Platform Engineering is infrastructure, reliability, cloud, and developer ` +
+        `platform work, not generic application software development. Exclude sources for a different role family.`;
 
       const callLinkup = async (query: string) => {
         const res = await fetch(LINKUP_URL, {
@@ -200,7 +238,10 @@ export const getVerdict = action({
         if (d.confidence === "high") d.confidence = "medium";
       }
 
-      const anchor = d.median ?? d.bandLow ?? d.bandHigh ?? null;
+      const filteredSources = relevantSources(json.sources ?? [], role);
+      const anchor = filteredSources.length
+        ? (d.median ?? d.bandLow ?? d.bandHigh ?? null)
+        : null;
       // Thin public data → Linkup nulls out fields despite the required schema.
       // Reject rather than cache/return a broken band.
       if (anchor == null) {
@@ -226,7 +267,7 @@ export const getVerdict = action({
           bandHigh: 0,
           median: 0,
           confidence: "low",
-          sources: (json.sources ?? []).map((s) => ({
+          sources: filteredSources.map((s) => ({
             name: s.name,
             url: s.url,
           })),
@@ -247,7 +288,7 @@ export const getVerdict = action({
         throw new Error(`Linkup returned an invalid compensation band for ${role}.`);
       }
       confidence = d.confidence ?? "low";
-      sources = (json.sources ?? []).map((s) => ({ name: s.name, url: s.url }));
+      sources = filteredSources.map((s) => ({ name: s.name, url: s.url }));
 
       await ctx.runMutation(internal.rateCache.set, {
         cacheKey,

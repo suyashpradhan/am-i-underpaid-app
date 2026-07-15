@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import './IntakeForm.css';
 
 export default function IntakeForm({ onSubmit }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [workDescription, setWorkDescription] = useState('');
   const [workMode, setWorkMode] = useState('');
@@ -26,8 +24,6 @@ export default function IntakeForm({ onSubmit }) {
     if (!canSubmit) return;
     onSubmit({
       employment: 'salaried',
-      name,
-      email,
       discipline: role.trim(),
       workDescription: workDescription.trim(),
       workMode,
@@ -41,21 +37,19 @@ export default function IntakeForm({ onSubmit }) {
 
   return (
     <main className="intake">
-      <div className="intake__brand"><span /> AMEUnderpaid</div>
       <form className="intake__card" onSubmit={handleSubmit}>
-        <div className="intake__eyebrow">India salary check</div>
-        <h1 className="intake__title">Are you paid what your work is worth?</h1>
-        <p className="intake__subtitle">A transparent market estimate in about a minute. No rigid job categories.</p>
+        <h1 className="intake__title">Where do you stand?</h1>
+        <p className="intake__subtitle">A transparent market estimate in about a minute.</p>
 
         <div className="field">
           <label className="field__label" htmlFor="role">Current job title <span className="required">*</span></label>
           <input id="role" value={role} maxLength={80} onChange={e => setRole(e.target.value)} placeholder="e.g. Platform Engineering Lead" autoComplete="organization-title" />
-          <p className="field__hint">Use the title closest to the work you do—not necessarily the title on your offer letter.</p>
+          <p className="field__hint">Use the title closest to the work you do.</p>
         </div>
 
         <div className="field field--spaced">
-          <label className="field__label" htmlFor="work-description">What do you primarily work on? <span className="optional">Optional</span></label>
-          <textarea id="work-description" value={workDescription} maxLength={240} onChange={e => setWorkDescription(e.target.value)} placeholder="e.g. Lead a team of 6 building Kubernetes infrastructure, internal tooling and AWS systems" rows={3} />
+          <label className="field__label" req htmlFor="work-description">What do you primarily work on? <span className="required">*</span></label>
+          <textarea id="work-description" required value={workDescription} maxLength={240} onChange={e => setWorkDescription(e.target.value)} placeholder="e.g. Lead a team of 6 building Kubernetes infrastructure, internal tooling and AWS systems" rows={3} />
           <div className="field__counter">{workDescription.length}/240</div>
         </div>
 
@@ -94,15 +88,6 @@ export default function IntakeForm({ onSubmit }) {
             </div>
           </div>
         </div>
-
-        <details className="identity-fields">
-          <summary>Add name and email <span>Optional</span></summary>
-          <p>Used only to personalize your result. Never included in salary comparisons.</p>
-          <div className="intake__grid">
-            <div className="field"><label className="field__label" htmlFor="name">Name</label><input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" /></div>
-            <div className="field"><label className="field__label" htmlFor="email">Email</label><input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
-          </div>
-        </details>
 
         <button type="submit" className="btn btn--primary btn--lg intake__submit" disabled={!canSubmit}>Check my market range <span aria-hidden="true">→</span></button>
         <p className="intake__footnote">Your salary check is anonymous. Estimates are based on public market evidence.</p>

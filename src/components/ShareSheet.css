@@ -2,41 +2,69 @@
   position: fixed;
   inset: 0;
   z-index: 72;
-  background: rgba(20,20,20,.45);
+  background: rgba(20, 20, 20, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeIn .2s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 .share-sheet__panel {
-  width: min(440px, 100%);
+  width: min(500px, 100%);
   max-height: 92vh;
   overflow-y: auto;
   background: #fff;
   border-radius: 22px;
-  box-shadow: 0 30px 70px -20px rgba(0,0,0,.45);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.45);
   padding: 22px clamp(18px, 4vw, 24px) 24px;
-  animation: scaleIn .28s cubic-bezier(.2,.9,.3,1);
+  animation: scaleIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-.share-sheet__header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
-.share-sheet__title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 3px; }
-.share-sheet__subtitle { font-size: 13.5px; color: var(--color-text-muted); margin: 0; }
+.share-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.share-sheet__title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 3px;
+}
+.share-sheet__subtitle {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
 .share-sheet__close {
-  border: none; background: #F0EFEC; width: 32px; height: 32px; border-radius: 50%;
-  font-size: 17px; color: var(--color-text-secondary); flex-shrink: 0;
+  border: none;
+  background: #f0efec;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 17px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
-.share-sheet__preview-wrap { display: flex; justify-content: center; margin: 16px 0 18px; }
+.share-sheet__preview-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 18px;
+}
 .share-sheet__preview {
-  width: 302px; height: 453px; overflow: hidden; border-radius: 20px;
-  box-shadow: 0 20px 44px -18px rgba(28,28,28,.28);
+  width: 402px;
+  height: 453px;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 20px 44px -18px rgba(28, 28, 28, 0.28);
 }
 .share-sheet__preview > * {
-  width: 400px; height: 600px;
+  width: 420px;
+  height: 600px;
   transform: scale(0.755);
   transform-origin: top left;
   display: block;
@@ -53,14 +81,31 @@
   border-radius: 12px;
   font-size: 14px;
   font-weight: 700;
-  transition: filter .16s, background .16s;
+  transition:
+    filter 0.16s,
+    background 0.16s;
 }
-.share-action--neutral { background: var(--color-bg); color: var(--color-text); }
-.share-action--neutral:hover { background: #F0EFEC; }
-.share-action--whatsapp { background: #E7F6EC; color: #1E7D45; }
-.share-action--whatsapp:hover { filter: brightness(0.97); }
-.share-action--linkedin { background: #E8F0FA; color: #1B5FA8; }
-.share-action--linkedin:hover { filter: brightness(0.98); }
+.share-action--neutral {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.share-action--neutral:hover {
+  background: #f0efec;
+}
+.share-action--whatsapp {
+  background: #e7f6ec;
+  color: #1e7d45;
+}
+.share-action--whatsapp:hover {
+  filter: brightness(0.97);
+}
+.share-action--linkedin {
+  background: #e8f0fa;
+  color: #1b5fa8;
+}
+.share-action--linkedin:hover {
+  filter: brightness(0.98);
+}
 
 .share-sheet__caption-block {
   margin-top: 14px;
@@ -68,8 +113,20 @@
   border-radius: 12px;
   padding: 14px 15px;
 }
-.share-sheet__caption-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #B4B3AE; margin-bottom: 8px; }
-.share-sheet__caption-text { font-size: 14px; line-height: 1.45; color: #3A3A38; margin: 0 0 12px; }
+.share-sheet__caption-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #b4b3ae;
+  margin-bottom: 8px;
+}
+.share-sheet__caption-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #3a3a38;
+  margin: 0 0 12px;
+}
 
 .share-sheet__tip-nudge {
   width: 100%;
@@ -78,7 +135,9 @@
   background: none;
   font-size: 13px;
   font-weight: 600;
-  color: #B07C7C;
+  color: #b07c7c;
   padding: 6px;
 }
-.share-sheet__tip-nudge:hover { color: var(--color-coral-text); }
+.share-sheet__tip-nudge:hover {
+  color: var(--color-coral-text);
+}

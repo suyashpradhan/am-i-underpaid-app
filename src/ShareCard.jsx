@@ -25,7 +25,7 @@ export default function ShareCard({
   quoteLabel = 'The number to quote',
   quoteText = '₹24L',
   receipts = 'Based on public salary data.',
-  wordmark = 'amiunderpaid.in',
+  wordmark = 'am-i-underpaid.in',
   cta = 'Check yours',
 }) {
   const tone = isAbove ? 'green' : 'coral';

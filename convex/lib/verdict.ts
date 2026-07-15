@@ -33,7 +33,7 @@ export function buildCacheKey(
     contextHash = Math.imul(contextHash, 16777619);
   }
   const fingerprint = context ? (contextHash >>> 0).toString(36) : "none";
-  return `${discipline.trim().toLowerCase()}|${city.trim().toLowerCase()}|${yearsBucket(years)}|${workMode}|${fingerprint}`;
+  return `v2|${discipline.trim().toLowerCase()}|${city.trim().toLowerCase()}|${yearsBucket(years)}|${workMode}|${fingerprint}`;
 }
 
 // HAND-CURATED, LABELED AS ESTIMATES. Only the differentiator skills — the ones

@@ -9,6 +9,7 @@
  */
 
 import type * as checks from "../checks.js";
+import type * as feedback from "../feedback.js";
 import type * as levers from "../levers.js";
 import type * as lib_verdict from "../lib/verdict.js";
 import type * as payCheck from "../payCheck.js";
@@ -22,6 +23,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   checks: typeof checks;
+  feedback: typeof feedback;
   levers: typeof levers;
   "lib/verdict": typeof lib_verdict;
   payCheck: typeof payCheck;
