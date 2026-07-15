@@ -1,0 +1,106 @@
+/* index.css — global resets + design tokens (CSS custom properties) + font loading */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap');
+
+:root {
+  /* Color */
+  --color-bg: #F7F7F5;
+  --color-card: #FFFFFF;
+  --color-text: #1C1C1C;
+  --color-text-secondary: #6B6B6B;
+  --color-text-muted: #8A8A86;
+  --color-border: #E2E1DD;
+  --color-border-subtle: #ECECE9;
+
+  --color-coral: #FB5D5D;
+  --color-coral-hover: #E8474C;
+  --color-coral-tint: #FEF1F0;
+  --color-coral-text: #D64349;
+  --color-coral-soft: #F5C9C6; /* range-bar band fill for under/at-market */
+
+  --color-green: #2E9E5B;
+  --color-green-tint: #EAF6EF;
+  --color-green-text: #5E8A70;
+  --color-green-soft: #BFE3CD; /* range-bar band fill for above-market */
+
+  --color-amber: #B07A2E;
+  --color-amber-tint: #FBF2E4;
+
+  /* Radius */
+  --radius-card: 22px;
+  --radius-card-lg: 24px;
+  --radius-input: 11px;
+  --radius-button: 12px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-card: 0 1px 2px rgba(28,28,28,.04), 0 20px 50px -24px rgba(28,28,28,.2);
+  --shadow-button-coral: 0 10px 24px -8px rgba(251,93,93,0.6);
+
+  /* Type */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid rgba(251,93,93,.28);
+  outline-offset: 2px;
+}
+button:disabled { cursor: not-allowed; }
+input, select { font-family: inherit; }
+a { color: var(--color-coral); text-decoration: none; }
+a:hover { color: var(--color-coral-hover); }
+input::placeholder { color: #B4B3AE; }
+::selection { background: #FFDAD7; }
+
+#root { width: 100%; min-height: 100vh; }
+.app-shell { width: 100%; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-button);
+  font-weight: 750;
+  line-height: 1;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: .46; box-shadow: none; }
+.btn--md { min-height: 46px; padding: 0 18px; font-size: 14px; }
+.btn--lg { min-height: 54px; padding: 0 22px; font-size: 15px; }
+.btn--primary { color: #fff; background: var(--color-coral); box-shadow: var(--shadow-button-coral); }
+.btn--primary:hover:not(:disabled) { background: var(--color-coral-hover); box-shadow: 0 13px 28px -9px rgba(251,93,93,.72); }
+.btn--secondary { color: var(--color-text); background: #fff; border-color: var(--color-border); box-shadow: 0 2px 7px rgba(28,28,28,.04); }
+.btn--secondary:hover:not(:disabled) { border-color: #c9c8c3; background: #fafaf9; }
+.btn--dark { color: #fff; background: var(--color-text); }
+.btn--dark:hover:not(:disabled) { background: #343431; }
+
+/* ---- shared keyframes (motion system) ---- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes slideRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }

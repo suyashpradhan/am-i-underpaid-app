@@ -1,0 +1,57 @@
+.payment {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.payment__card {
+  width: min(400px, 100%);
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 36px 28px;
+  text-align: center;
+  animation: scaleIn .3s ease both;
+}
+
+.payment__spinner {
+  width: 56px; height: 56px;
+  margin: 0 auto 22px;
+  position: relative;
+}
+.payment__spinner-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 3px solid #F0EFEC;
+  border-top-color: var(--color-coral);
+  animation: spin .9s linear infinite;
+}
+.payment__spinner .coffee-cup {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+
+.payment__headline { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+.payment__subtext { font-size: 14.5px; color: var(--color-text-muted); line-height: 1.45; margin: 0 0 22px; }
+
+.payment__secure-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--color-bg); padding: 10px 16px; border-radius: 999px;
+}
+.payment__secure-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-green); }
+.payment__secure-pill span:last-child { font-size: 13px; font-weight: 700; color: #3A3A38; }
+
+.payment__thanks-icon {
+  width: 64px; height: 64px; margin: 0 auto 22px;
+  border-radius: 50%; background: var(--color-coral-tint);
+  display: flex; align-items: center; justify-content: center;
+  animation: pop .45s ease both;
+}
+
+/* coffee cup icon variants (also used by tip-jar in Result.css) */
+.coffee-cup--dark { background: var(--color-text); }
+.coffee-cup--dark::after { border-color: var(--color-text); }
+.coffee-cup--coral { width: 22px; height: 17px; border-radius: 4px 4px 7px 7px; background: var(--color-coral); }
+.coffee-cup--coral::after { width: 8px; height: 9px; right: -8px; top: 3px; border-width: 2.5px; border-color: var(--color-coral); }
