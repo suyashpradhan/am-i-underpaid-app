@@ -4,7 +4,19 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { PostHogProvider } from "@posthog/react";
 import App from "./App";
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+const posthogToken = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN;
+const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
+
+if (!convexUrl) {
+  throw new Error("VITE_CONVEX_URL is not configured.");
+}
+
+if (!posthogToken || !posthogHost) {
+  throw new Error("PostHog environment variables are not configured.");
+}
+
+const convex = new ConvexReactClient(convexUrl);
 
 const posthogOptions = {
   api_host: import.meta.env.VITE_POSTHOG_HOST as string,

@@ -2,12 +2,6 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  // Identified. Kept completely separate from `checks` — never join name to salary.
-  waitlist: defineTable({
-    name: v.string(),
-    email: v.string(),
-  }).index("by_email", ["email"]),
-
   // Anonymous pool. No name/email here, ever. Also the usage counter.
   checks: defineTable({
     isFreelancer: v.boolean(),

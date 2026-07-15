@@ -103,30 +103,48 @@ function relevantSources(
   const roleFamilies: Array<{ test: RegExp; terms: RegExp }> = [
     {
       test: /solutions? engineer|pre[- ]?sales/,
-      terms: /solutions? engineer|sales engineer|pre[- ]?sales engineer|customer engineer/,
+      terms:
+        /solutions? engineer|sales engineer|pre[- ]?sales engineer|customer engineer/,
     },
     {
       test: /platform|infrastructure|devops|site reliability|\bsre\b/,
-      terms: /platform engineer|infrastructure engineer|devops|site reliability|\bsre\b|developer platform/,
+      terms:
+        /platform engineer|infrastructure engineer|devops|site reliability|\bsre\b|developer platform/,
     },
     {
       test: /forward deployed/,
-      terms: /forward deployed|deployment strategist|customer engineer|solutions? engineer/,
+      terms:
+        /forward deployed|deployment strategist|customer engineer|solutions? engineer/,
     },
   ];
   const family = roleFamilies.find(({ test }) => test.test(normalizedRole));
   const genericWords = new Set([
-    "senior", "junior", "lead", "leader", "head", "vp", "vice", "president",
-    "engineer", "engineering", "manager", "india", "remote",
+    "senior",
+    "junior",
+    "lead",
+    "leader",
+    "head",
+    "vp",
+    "vice",
+    "president",
+    "engineer",
+    "engineering",
+    "manager",
+    "india",
+    "remote",
   ]);
   const roleTerms = normalizedRole
     .split(/[^a-z0-9+#.]+/)
     .filter((word) => word.length > 2 && !genericWords.has(word));
 
   return (sources ?? []).filter((source) => {
-    const evidence = `${source.name} ${source.url} ${source.content ?? ""}`.toLowerCase();
+    const evidence =
+      `${source.name} ${source.url} ${source.content ?? ""}`.toLowerCase();
     if (family) return family.terms.test(evidence);
-    return roleTerms.length === 0 || roleTerms.some((term) => evidence.includes(term));
+    return (
+      roleTerms.length === 0 ||
+      roleTerms.some((term) => evidence.includes(term))
+    );
   });
 }
 
@@ -145,6 +163,24 @@ export const getVerdict = action({
     currentPay: v.number(),
   },
   handler: async (ctx, args): Promise<VerdictResult> => {
+    const role = args.discipline.trim();
+
+    if (role.length < 2 || role.length > 80) {
+      throw new Error("Invalid job title.");
+    }
+
+    if (args.workDescription.length > 240) {
+      throw new Error("Work description is too long.");
+    }
+
+    if (args.yearsExperience < 0 || args.yearsExperience > 50) {
+      throw new Error("Invalid experience.");
+    }
+
+    if (args.currentPay <= 0 || args.currentPay > 500) {
+      throw new Error("Invalid compensation.");
+    }
+
     // Skills do NOT go into the key or the query — band is coarse & cached.
     const cacheKey = buildCacheKey(
       args.discipline,
@@ -163,17 +199,26 @@ export const getVerdict = action({
     } else {
       const apiKey = process.env.LINKUP_API_KEY ?? process.env.AMIUNDERPAID;
       if (!apiKey)
-        throw new Error("LINKUP_API_KEY is not set in Convex environment variables.");
+        throw new Error(
+          "LINKUP_API_KEY is not set in Convex environment variables.",
+        );
 
       const seniority = seniorityLabel(args.yearsExperience);
 
-      const role = args.discipline.trim().replace(/\s+/g, " ").slice(0, 80);
+      const role = args.discipline.trim().replace(/\s+/g, " ");
+
+      if (role.length < 2 || role.length > 80) {
+        throw new Error("Invalid job title.");
+      }
       const city = args.city.trim().replace(/\s+/g, " ").slice(0, 80);
 
       const workContext = args.workDescription
         ? ` Their actual work is: "${args.workDescription.slice(0, 240)}".`
         : "";
-      const track = args.workMode === "manager" ? "people manager" : "individual contributor";
+      const track =
+        args.workMode === "manager"
+          ? "people manager"
+          : "individual contributor";
       const buildQuery = (scope: string, cityQualifier: string) =>
         `For a ${seniority} ${track} with the job title "${role}"${cityQualifier}, what is the 25th percentile, median, ` +
         `and 75th percentile of TOTAL annual compensation (base + bonus + stock/RSUs) in ` +
@@ -284,8 +329,15 @@ export const getVerdict = action({
       bandLow = d.bandLow ?? Math.round(anchor * 0.85 * 10) / 10;
       bandHigh = d.bandHigh ?? Math.round(anchor * 1.15 * 10) / 10;
       median = d.median ?? anchor;
-      if (!(bandLow > 0 && bandLow <= median && median <= bandHigh && bandHigh <= 500)) {
-        throw new Error(`Linkup returned an invalid compensation band for ${role}.`);
+      if (!(
+        bandLow > 0 &&
+        bandLow <= median &&
+        median <= bandHigh &&
+        bandHigh <= 500
+      )) {
+        throw new Error(
+          `Linkup returned an invalid compensation band for ${role}.`,
+        );
       }
       confidence = d.confidence ?? "low";
       sources = filteredSources.map((s) => ({ name: s.name, url: s.url }));
