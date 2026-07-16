@@ -12,26 +12,32 @@ if (!convexUrl) {
   throw new Error("VITE_CONVEX_URL is not configured.");
 }
 
-if (!posthogToken || !posthogHost) {
-  throw new Error("PostHog environment variables are not configured.");
-}
-
 const convex = new ConvexReactClient(convexUrl);
 
 const posthogOptions = {
-  api_host: import.meta.env.VITE_POSTHOG_HOST as string,
+  api_host: posthogHost as string,
   defaults: "2026-05-30",
+  autocapture: false,
+  capture_pageview: false,
+  disable_session_recording: true,
+  person_profiles: "never",
+  persistence: "sessionStorage",
 } as const;
+
+const application = (
+  <ConvexProvider client={convex}>
+    <App />
+  </ConvexProvider>
+);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PostHogProvider
-      apiKey={import.meta.env.VITE_POSTHOG_PROJECT_TOKEN as string}
-      options={posthogOptions}
-    >
-      <ConvexProvider client={convex}>
-        <App />
-      </ConvexProvider>
-    </PostHogProvider>
+    {posthogToken && posthogHost ? (
+      <PostHogProvider apiKey={posthogToken} options={posthogOptions}>
+        {application}
+      </PostHogProvider>
+    ) : (
+      application
+    )}
   </StrictMode>,
 );

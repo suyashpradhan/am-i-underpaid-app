@@ -47,6 +47,7 @@ export default function IntakeForm({ onSubmit, initialValues = {} }) {
     <main className="intake">
       <form className="intake__card" onSubmit={handleSubmit}>
         <h1 className="intake__title">Where do you stand?</h1>
+        <p className="intake__subtitle">A transparent market estimate in about a minute.</p>
 
         <div className="field">
           <label className="field__label" htmlFor="role">Current job title <span className="required">*</span></label>
@@ -55,7 +56,7 @@ export default function IntakeForm({ onSubmit, initialValues = {} }) {
         </div>
 
         <div className="field field--spaced">
-          <label className="field__label" req htmlFor="work-description">What do you primarily work on? <span className="required">*</span></label>
+          <label className="field__label" htmlFor="work-description">What do you primarily work on? <span className="required">*</span></label>
           <textarea id="work-description" required value={workDescription} maxLength={240} onChange={e => setWorkDescription(e.target.value)} placeholder="e.g. Lead a team of 6 building Kubernetes infrastructure, internal tooling and AWS systems" rows={3} />
           <div className="field__counter">{workDescription.length}/240</div>
         </div>
@@ -131,7 +132,7 @@ export default function IntakeForm({ onSubmit, initialValues = {} }) {
         </div>
 
         <button type="submit" className="btn btn--primary btn--lg intake__submit" disabled={!canSubmit}>Check my market range <span aria-hidden="true">→</span></button>
-        <p className="intake__footnote">Your check is anonymous. Estimates use public data and may be inaccurate.</p>
+        <p className="intake__footnote">Your salary check is anonymous. Estimates are based on public market evidence.</p>
       </form>
     </main>
   );

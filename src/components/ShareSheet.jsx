@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
+import { usePostHog } from '@posthog/react';
 import ShareCard from '../ShareCard';
 import './ShareSheet.css';
 
 export default function ShareSheet({ shareCardProps, caption, link, onClose, onStartTip }) {
   const captureRef = useRef(null);
+  const posthog = usePostHog();
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const shareUrl = /^https?:\/\//i.test(link) ? link : `https://${link}`;
@@ -14,6 +16,7 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
     try {
       await copyText(text);
       setStatus(kind);
+      posthog?.capture('share_action', { action: kind === 'link' ? 'copy_link' : kind === 'caption' ? 'copy_caption' : 'linkedin_opened' });
       setError('');
       setTimeout(() => setStatus('idle'), 1800);
     } catch {
@@ -51,14 +54,17 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       setStatus('downloaded');
+      posthog?.capture('share_action', { action: 'download_image' });
       setTimeout(() => setStatus('idle'), 1800);
     } catch {
+      posthog?.capture('share_action_failed', { action: 'download_image' });
       setStatus('idle');
       setError('The image could not be generated. Please try again.');
     }
   }
 
   function shareToX() {
+    posthog?.capture('share_action', { action: 'x_opened' });
     const url = `https://x.com/intent/post?text=${encodeURIComponent(caption)}&url=${encodeURIComponent(shareUrl)}`;
     openShareWindow(url, 'share-on-x');
   }
@@ -79,10 +85,13 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
       const data = { title: 'My salary check', text: shareText, url: shareUrl };
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title: data.title, text: shareText, files: [file] });
+        posthog?.capture('share_action', { action: 'native_share_with_image' });
       } else if (navigator.share) {
         await navigator.share(data);
+        posthog?.capture('share_action', { action: 'native_share_link' });
       } else {
         await copyText(shareText);
+        posthog?.capture('share_action', { action: 'native_share_fallback_copy' });
         setStatus('shared-copy');
         setTimeout(() => setStatus('idle'), 1800);
         return;
@@ -91,6 +100,7 @@ export default function ShareSheet({ shareCardProps, caption, link, onClose, onS
     } catch (shareError) {
       setStatus('idle');
       if (shareError?.name !== 'AbortError') {
+        posthog?.capture('share_action_failed', { action: 'native_share' });
         setError('Sharing was not available. You can download the image or copy the caption instead.');
       }
     }

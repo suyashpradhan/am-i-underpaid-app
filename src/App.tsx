@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { usePostHog } from "@posthog/react";
 import { api } from "../convex/_generated/api";
@@ -55,11 +55,13 @@ export default function App() {
   const reportMissingRole = useMutation(api.feedback.reportMissingRole);
   const checkCount = useQuery(api.checks.count);
   const posthog = usePostHog();
+  const landingCaptured = useRef(false);
 
   useEffect(() => {
+    if (landingCaptured.current) return;
+    landingCaptured.current = true;
     posthog?.capture("landing_view");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [posthog]);
 
   // IntakeForm submits -> fire the REAL API call, then route on the result.
   const handleFormSubmit = useCallback(
@@ -70,6 +72,7 @@ export default function App() {
       }
       setResultData(null); // clear any previous result so nothing stale can render
       const isFreelancer = data.employment === "freelancer";
+      const checkAttemptId = crypto.randomUUID();
 
       posthog?.capture("check_submitted", {
         employment: data.employment,
@@ -81,6 +84,7 @@ export default function App() {
         company_type: data.companyType,
         company_hq: data.companyHq,
         compensation_type: data.compensationType,
+        check_attempt_id: checkAttemptId,
       });
 
       setScreen("calculating");
@@ -119,6 +123,10 @@ export default function App() {
             variant: res.verdict,
             percentile: res.percentile,
             uncertain: true,
+            result_type: res.noData ? "no_data" : "directional",
+            confidence: res.confidence,
+            source_count: Array.isArray(res.sources) ? res.sources.length : 0,
+            check_attempt_id: checkAttemptId,
           });
           return;
         }
@@ -130,8 +138,17 @@ export default function App() {
           variant: res.verdict,
           percentile: res.percentile,
           uncertain: false,
+          result_type: "strong",
+          confidence: res.confidence,
+          source_count: Array.isArray(res.sources) ? res.sources.length : 0,
+          check_attempt_id: checkAttemptId,
         });
       } catch (e) {
+        posthog?.capture("check_failed", {
+          check_attempt_id: checkAttemptId,
+          stage: "market_search",
+          error_type: e instanceof Error ? e.name : "unknown",
+        });
         // Never dead-end: route to the error edge state with retry.
         setScreen("edge-error");
       }
@@ -140,13 +157,13 @@ export default function App() {
   );
 
   async function startTip() {
-    posthog?.capture("tip_clicked", { amount: tipAmount });
+    const amountRupees = Number(tipAmount.replace(/[^0-9]/g, ""));
+    posthog?.capture("tip_clicked", { amount: amountRupees });
     setPaymentError("");
     setPaymentPhase("redirect");
     setScreen("payment");
     try {
       await loadRazorpayCheckout();
-      const amountRupees = Number(tipAmount.replace(/[^0-9]/g, ""));
       const order = await createRazorpayOrder({ amountRupees });
       let completed = false;
       const checkout = new (window as any).Razorpay({
@@ -160,7 +177,10 @@ export default function App() {
         modal: {
           confirm_close: true,
           ondismiss: () => {
-            if (!completed) setPaymentPhase("cancelled");
+            if (!completed) {
+              setPaymentPhase("cancelled");
+              posthog?.capture("tip_cancelled", { amount: amountRupees });
+            }
           },
         },
         handler: async (response: any) => {
@@ -177,10 +197,14 @@ export default function App() {
               posthog?.capture("tip_verified", { amount: amountRupees });
             } else if (verified.pending) {
               setPaymentPhase("pending");
+              posthog?.capture("tip_pending", { amount: amountRupees });
             } else {
               throw new Error("Payment was not captured.");
             }
           } catch {
+            posthog?.capture("tip_verification_failed", {
+              amount: amountRupees,
+            });
             setPaymentError(
               "We couldn't verify this payment. Please check Razorpay before trying again.",
             );
@@ -196,11 +220,14 @@ export default function App() {
         );
         setPaymentPhase("error");
         posthog?.capture("tip_failed", {
+          amount: amountRupees,
           reason: response?.error?.reason || "unknown",
         });
       });
+      posthog?.capture("tip_checkout_opened", { amount: amountRupees });
       checkout.open();
     } catch {
+      posthog?.capture("tip_checkout_error", { amount: amountRupees });
       setPaymentError("Checkout couldn't be opened. Please try again.");
       setPaymentPhase("error");
     }
