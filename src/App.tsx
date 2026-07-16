@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { usePostHog } from "@posthog/react";
 import { api } from "../convex/_generated/api";
 import "./index.css";
@@ -48,6 +48,7 @@ export default function App() {
 
   const getVerdict = useAction(api.payCheck.getVerdict);
   const reportIncorrect = useMutation(api.feedback.reportIncorrect);
+  const checkCount = useQuery(api.checks.count);
   const posthog = usePostHog();
 
   useEffect(() => {
@@ -187,6 +188,7 @@ export default function App() {
           <>
             <Result
               {...resultData}
+              checkCount={checkCount}
               tipAmount={tipAmount}
               onTipAmountChange={setTipAmount}
               onRecheck={() => setScreen("intake")}
@@ -241,6 +243,8 @@ export default function App() {
             bandLow={resultData?.bandLow}
             bandHigh={resultData?.bandHigh}
             sources={resultData?.sources || []}
+            noData={resultData?.noData}
+            comparisonSummary={resultData?.comparisonSummary}
             onRetry={() => formData && handleFormSubmit(formData)}
             onBackToForm={() => setScreen("intake")}
           />

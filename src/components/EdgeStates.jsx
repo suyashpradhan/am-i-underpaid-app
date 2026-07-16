@@ -14,6 +14,8 @@ export default function EdgeStates({
   bandLow = undefined,         
   bandHigh = undefined,        
   sources = [],
+  noData = false,
+  comparisonSummary = '',
   onRetry,
   onBackToForm,
 }) {
@@ -47,11 +49,19 @@ export default function EdgeStates({
     <div className="edge">
       <div className="edge__card">
         <span className="edge__badge">LIMITED DATA</span>
-        <h1 className="edge__headline">Here's our best estimate.</h1>
+        <h1 className="edge__headline">{hasBand ? "Here's our best estimate." : "We couldn't calculate a trustworthy range."}</h1>
         <p className="edge__body">
-          We found limited public data for {roleLabel} in {city}, so treat this as a
-          starting point — not gospel. It sharpens every time someone like you checks.
+          {hasBand
+            ? `We found limited public data for ${roleLabel} in ${city}, so treat this as a starting point — not gospel.`
+            : `We found relevant pages for ${roleLabel} in ${city}, but not enough comparable numerical evidence to give you a verdict.`}
         </p>
+
+        {!hasBand && comparisonSummary && (
+          <div className="edge__cohort">
+            <strong>Comparison requested</strong>
+            <span>{comparisonSummary}</span>
+          </div>
+        )}
 
         {hasBand && (
           <div className="edge__range-bar-block">
@@ -67,7 +77,7 @@ export default function EdgeStates({
         )}
 
         <div className="edge__sources">
-          <div className="edge__sources-label">What we could find</div>
+          <div className="edge__sources-label">{noData || !hasBand ? 'Sources inspected' : 'What we could find'}</div>
           {sources && sources.length > 0 ? (
             sources.map((s) => (
               <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" className="edge__source-link">

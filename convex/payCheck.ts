@@ -56,6 +56,12 @@ const STRUCTURED_SCHEMA = JSON.stringify({
       description:
         "Whether the evidence supports the requested company type or headquarters pay market.",
     },
+    roleMatch: {
+      type: "string",
+      enum: ["exact", "adjacent", "mismatch", "unknown"],
+      description:
+        "Whether the salary evidence matches the requested title and described responsibilities.",
+    },
   },
   required: ["bandLow", "median", "bandHigh", "confidence"],
 });
@@ -87,6 +93,7 @@ type LinkupResponse = {
     matchedTitles?: string[] | null;
     senioritySupported?: boolean | null;
     companyContextSupported?: boolean | null;
+    roleMatch?: "exact" | "adjacent" | "mismatch" | "unknown" | null;
   };
   sources: Array<{
     name: string;
@@ -104,6 +111,7 @@ function usableBand(data: LinkupResponse["data"]): data is {
   matchedTitles?: string[] | null;
   senioritySupported?: boolean | null;
   companyContextSupported?: boolean | null;
+  roleMatch?: "exact" | "adjacent" | "mismatch" | "unknown" | null;
 } {
   const { bandLow, median, bandHigh } = data;
   return (
@@ -143,35 +151,22 @@ function relevantSources(
       terms:
         /forward deployed|deployment strategist|customer engineer|solutions? engineer/,
     },
+    {
+      test: /react native|android|ios|mobile engineer|mobile developer/,
+      terms:
+        /react native|android|ios|mobile engineer|mobile developer|swift|kotlin/,
+    },
   ];
   const family = roleFamilies.find(({ test }) => test.test(normalizedRole));
-  const genericWords = new Set([
-    "senior",
-    "junior",
-    "lead",
-    "leader",
-    "head",
-    "vp",
-    "vice",
-    "president",
-    "engineer",
-    "engineering",
-    "manager",
-    "india",
-    "remote",
-  ]);
-  const roleTerms = normalizedRole
-    .split(/[^a-z0-9+#.]+/)
-    .filter((word) => word.length > 2 && !genericWords.has(word));
-
   return (sources ?? []).filter((source) => {
+    if (!/^https?:\/\//i.test(source.url || "")) return false;
     const evidence =
       `${source.name} ${source.url} ${source.content ?? ""}`.toLowerCase();
     if (family) return family.terms.test(evidence);
-    return (
-      roleTerms.length === 0 ||
-      roleTerms.some((term) => evidence.includes(term))
-    );
+    // Arbitrary titles cannot be safely handled by a finite allow-list. For
+    // unknown role families, retain the sources and rely on the structured
+    // roleMatch judgment plus matchedTitles returned from the search.
+    return true;
   });
 }
 
@@ -286,7 +281,9 @@ export const getVerdict = action({
         `For a ${seniority} ${track} with the job title "${role}"${cityQualifier}, what is the 25th percentile, median, ` +
         `and 75th percentile of ${compensationDefinition}, in ` +
         `INR lakhs per annum for ${scope}, working at ${companyContext}, ${hqContext}?${workContext} Interpret the title using those responsibilities, ` +
-        `management track, and seniority. Search the exact title plus close market-standard comparable titles; ` +
+        `management track, and seniority. This app accepts arbitrary job titles from any profession, so infer ` +
+        `the market-standard role family from the responsibilities instead of using a fixed title list. Search ` +
+        `the exact title plus genuinely close comparable titles and return those titles in matchedTitles; ` +
         `do NOT collapse it into a generic "software engineer" average. Base the ` +
         `figures on this seniority level, NOT on averages across all experience levels. Prefer ` +
         `sources that report pay for this specific role and segment by years of experience or ` +
@@ -408,9 +405,14 @@ export const getVerdict = action({
       }
 
       const finalFilteredSources = relevantSources(json.sources ?? [], role);
-      const anchor = finalFilteredSources.length
-        ? (d.median ?? d.bandLow ?? d.bandHigh ?? null)
-        : null;
+      const roleEvidenceIsUsable =
+        d.roleMatch !== "mismatch" &&
+        (d.roleMatch !== "unknown" || (d.matchedTitles?.length ?? 0) > 0);
+      if (!roleEvidenceIsUsable) d.confidence = "low";
+      const anchor =
+        finalFilteredSources.length && roleEvidenceIsUsable
+          ? (d.median ?? d.bandLow ?? d.bandHigh ?? null)
+          : null;
       // Thin public data → Linkup nulls out fields despite the required schema.
       // Reject rather than cache/return a broken band.
       if (anchor == null) {

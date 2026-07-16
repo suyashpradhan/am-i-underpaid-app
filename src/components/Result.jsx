@@ -17,7 +17,6 @@ import './Result.css';
  *  bandLow         number   in lakhs, e.g. 22
  *  bandHigh        number   in lakhs, e.g. 24
  *  quoteAmount     number   in lakhs, e.g. 24 — "the number to quote"
- *  poolRank        number   e.g. 1204
  *  sources         array of { label, url } — plain-text outbound citations
  *  levers          object grouped as { skills: [], cities: [], seniority: [], roles: [] }
  *                  each lever: { title, delta: '+₹4L', newBand: '→ ₹27–28L', source: {label, url} }
@@ -31,18 +30,14 @@ export default function Result({
   roleLabel = 'frontend engineer',
   city = 'Bangalore',
   verdict = 'underpaid',
-  percentile = 22,
-  currentAmount = 18,
-  bandLow = 22,
-  bandHigh = 24,
-  quoteAmount = 24,
-  poolRank = 1204,
-  sources = [
-    { label: 'levels.fyi — Bengaluru software roles', url: 'https://www.levels.fyi/t/software-engineer/locations/india-bengaluru' },
-    { label: 'Michael Page India Salary Guide', url: 'https://www.michaelpage.co.in/salary-guide' },
-    { label: 'MoSPI — Periodic Labour Force Survey', url: 'https://www.mospi.gov.in/' },
-    { label: 'Economic Times — tech salary coverage', url: 'https://economictimes.indiatimes.com/tech' },
-  ],
+  percentile = 0,
+  currentAmount = 0,
+  bandLow = 0,
+  bandHigh = 0,
+  quoteAmount = 0,
+  comparisonSummary = '',
+  sources = [],
+  checkCount = null,
   confidence = 'medium',
   uncertain = false,
   onRecheck,
@@ -185,9 +180,12 @@ export default function Result({
               <div className={`hero-block__frame hero-block__frame--${accent}`}>{frame}</div>
             </div>
 
-            <div className="pool-note">
-              You're the {Number(poolRank || 0).toLocaleString('en-IN')}th person to check. Every check sharpens the next.
-            </div>
+            {Number(checkCount) > 0 && (
+              <div className="pool-note">
+                {Number(checkCount).toLocaleString('en-IN')} anonymous salary checks completed.
+              </div>
+            )}
+
           </div>
 
           <button type="button" className="btn btn--primary btn--lg share-cta" onClick={onShare}>
@@ -200,7 +198,7 @@ export default function Result({
 
         {/* RIGHT COLUMN — evidence and feedback */}
         <div className="result__col">
-          <EvidencePanel sources={sources} confidence={confidence} uncertain={uncertain} roleLabel={roleLabel} city={city} />
+          <EvidencePanel sources={sources} confidence={confidence} uncertain={uncertain} roleLabel={roleLabel} city={city} comparisonSummary={comparisonSummary} />
           <div className="feedback-card">
             <div><strong>Does this comparison look wrong?</strong><span>Your feedback helps us catch mismatched roles and sources.</span></div>
             <button type="button" onClick={sendFeedback} disabled={feedbackState === 'sending' || feedbackState === 'sent'}>
@@ -232,7 +230,7 @@ export default function Result({
   );
 }
 
-function EvidencePanel({ sources, confidence, uncertain, roleLabel, city }) {
+function EvidencePanel({ sources, confidence, uncertain, roleLabel, city, comparisonSummary }) {
   const conf = uncertain ? 'low' : confidence;
   const meta = {
     high: { label: 'Strong match', copy: 'Multiple relevant sources support this estimate.' },
@@ -245,7 +243,7 @@ function EvidencePanel({ sources, confidence, uncertain, roleLabel, city }) {
       <div className="evidence-panel__eyebrow">Evidence quality</div>
       <div className={`confidence confidence--${conf}`}><span /> <strong>{meta.label}</strong> · {meta.copy}</div>
       <div className="evidence-panel__heading">Salary comparison sources</div>
-      <p className="evidence-panel__context">Evidence used for {roleLabel} in {city}</p>
+      <p className="evidence-panel__context">{comparisonSummary || `Evidence used for ${roleLabel} in ${city}`}</p>
       <div className="evidence-panel__details">
         <div className="evidence-panel__sources">
           {sources.length ? sources.map((source, index) => (

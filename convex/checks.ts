@@ -27,15 +27,30 @@ export const record = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("checks", args);
+    const stats = await ctx.db
+      .query("salaryCheckStats")
+      .withIndex("by_key", (q) => q.eq("key", "all"))
+      .unique();
+    if (stats) {
+      await ctx.db.patch(stats._id, { count: stats.count + 1 });
+    } else {
+      // Seed from historical rows the first time this version records a check.
+      const historicalRows = await ctx.db.query("checks").collect();
+      await ctx.db.insert("salaryCheckStats", {
+        key: "all",
+        count: historicalRows.length,
+      });
+    }
   },
 });
 
-// collect().length is O(n); fine at hundreds/thousands of rows. If this becomes
-// a hot path before Phase 6, switch to a counter document instead of scanning.
 export const count = query({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query("checks").collect();
-    return rows.length;
+    const stats = await ctx.db
+      .query("salaryCheckStats")
+      .withIndex("by_key", (q) => q.eq("key", "all"))
+      .unique();
+    return stats?.count ?? null;
   },
 });

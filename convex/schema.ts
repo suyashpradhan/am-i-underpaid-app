@@ -27,6 +27,13 @@ export default defineSchema({
     ),
   }).index("by_discipline_city", ["discipline", "city"]),
 
+  // Singleton aggregate. This avoids scanning every anonymous check whenever
+  // the result screen wants to show real usage.
+  salaryCheckStats: defineTable({
+    key: v.literal("all"),
+    count: v.number(),
+  }).index("by_key", ["key"]),
+
   // Cache layer. Band keyed by discipline+city+yearsBucket ONLY (no skills).
   rateCache: defineTable({
     cacheKey: v.string(), // `${discipline}|${city}|${yearsBucket}` lowercased
