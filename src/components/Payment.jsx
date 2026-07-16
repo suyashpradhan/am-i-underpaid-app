@@ -42,7 +42,7 @@ export default function Payment({ phase = 'redirect', tipAmount = '₹20', error
         {(phase === 'error' || phase === 'cancelled') && (
           <>
             <h2 className="payment__headline">{phase === 'cancelled' ? 'Checkout closed.' : 'Payment didn’t go through.'}</h2>
-            <p className="payment__subtext">{phase === 'cancelled' ? 'No problem—supporting the tool is completely optional.' : errorMessage}</p>
+            <p className="payment__subtext">{phase === 'cancelled' ? 'No problem, supporting the tool is completely optional.' : errorMessage}</p>
             <div className="payment__actions">
               {phase === 'error' && <button type="button" className="btn btn--primary" onClick={onRetry}>Try again</button>}
               <button type="button" className="btn btn--secondary" onClick={onBackToResult}>Back to my result</button>
@@ -55,7 +55,7 @@ export default function Payment({ phase = 'redirect', tipAmount = '₹20', error
             <div className="payment__thanks-icon">
               <span className="coffee-cup coffee-cup--coral" />
             </div>
-            <h2 className="payment__headline">Thank you — that means a lot.</h2>
+            <h2 className="payment__headline">Thank you!!! That means a lot.</h2>
             <p className="payment__subtext">
               Genuinely. This keeps the tool free and anonymous for the next person who needs it.
             </p>

@@ -58,7 +58,7 @@ export default function Calculating({ roleLabel = 'frontend engineer', city = 'B
           ))}
         </div>
 
-        <p className="calculating__footnote">Your estimate is built from public salary data.</p>
+        <p className="calculating__footnote">Your estimate is built from public salary data and may be inaccurate.</p>
       </div>
     </div>
   );

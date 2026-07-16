@@ -286,7 +286,7 @@ export default function App() {
               <ShareSheet
                 shareCardProps={shareCardProps}
                 caption={captionFor(resultData)}
-                link={`am-i-underpaid.in`}
+                link="https://am-i-underpaid.in"
                 onClose={() => setShareOpen(false)}
                 onStartTip={startTip}
               />
@@ -449,8 +449,8 @@ function mapResult(res: any, form: any, currentPay: number) {
 function captionFor(r: any) {
   const gap = Math.max(0, r.quoteAmount - r.currentAmount);
   if (r.verdict === "underpaid")
-    return `Just found out I'm underpaid by ₹${gap}L. Check yours: am-i-underpaid.in`;
+    return `Just found out I'm underpaid by ₹${gap}L.`;
   if (r.verdict === "fair")
-    return `Turns out I'm right at market as a ${r.roleLabel} in ${r.city}. Check yours: am-i-underpaid.in`;
-  return `Turns out I'm paid above market as a ${r.roleLabel} in ${r.city}. Check yours: am-i-underpaid.in`;
+    return `Turns out I'm right at market as a ${r.roleLabel} in ${r.city}.`;
+  return `Turns out I'm paid above market as a ${r.roleLabel} in ${r.city}.`;
 }
