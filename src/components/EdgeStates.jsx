@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './EdgeStates.css';
 
 /**
@@ -16,9 +16,15 @@ export default function EdgeStates({
   sources = [],
   noData = false,
   comparisonSummary = '',
+  profile = {},
+  canBroaden = false,
+  onBroaden = () => {},
+  onReportMissing = () => {},
   onRetry,
   onBackToForm,
 }) {
+  const [reportState, setReportState] = useState('idle');
+
   if (variant === 'error') {
     return (
       <div className="edge">
@@ -45,6 +51,17 @@ export default function EdgeStates({
   const hasBand = Number(bandLow) > 0 && Number(bandHigh) > 0;
   const payText = Number(currentAmount) > 0 ? `₹${Number(currentAmount)}L` : 'your pay';
 
+  async function reportMissing() {
+    if (reportState !== 'idle') return;
+    setReportState('sending');
+    try {
+      await onReportMissing?.();
+      setReportState('sent');
+    } catch {
+      setReportState('error');
+    }
+  }
+
   return (
     <div className="edge">
       <div className="edge__card">
@@ -56,10 +73,19 @@ export default function EdgeStates({
             : `We found relevant pages for ${roleLabel} in ${city}, but not enough comparable numerical evidence to give you a verdict.`}
         </p>
 
-        {!hasBand && comparisonSummary && (
+        {!hasBand && (
           <div className="edge__cohort">
-            <strong>Comparison requested</strong>
+            <strong>What we checked</strong>
+            <b>{profile.role || roleLabel}</b>
             <span>{comparisonSummary}</span>
+            {Number(profile.currentPay) > 0 && <em>Your current compensation: ₹{Number(profile.currentPay)}L</em>}
+          </div>
+        )}
+
+        {!hasBand && (
+          <div className="edge__why">
+            <strong>Why no verdict?</strong>
+            <p>The available salary pages did not match enough of your role, seniority, location and company context. Showing a broad junior or generic engineering range would be misleading.</p>
           </div>
         )}
 
@@ -93,6 +119,17 @@ export default function EdgeStates({
             Estimates from public data. Not affiliated with any of these sources. Confidence is lower here.
           </p>
         </div>
+
+        {!hasBand && (
+          <div className="edge__actions">
+            {canBroaden && <button type="button" className="btn btn--primary btn--md" onClick={onBroaden}>Compare with broader market</button>}
+            <button type="button" className="btn btn--secondary btn--md" onClick={onBackToForm}>Edit my details</button>
+            <button type="button" className="edge__report" onClick={reportMissing} disabled={reportState === 'sending' || reportState === 'sent'}>
+              {reportState === 'sent' ? 'Thanks — role reported' : reportState === 'sending' ? 'Reporting…' : reportState === 'error' ? 'Try reporting again' : 'Report missing role data'}
+            </button>
+            {canBroaden && <small>A broader comparison removes company stage and headquarters constraints only. It keeps your role, seniority, location and compensation type.</small>}
+          </div>
+        )}
       </div>
     </div>
   );

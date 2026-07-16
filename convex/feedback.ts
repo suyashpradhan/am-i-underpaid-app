@@ -25,7 +25,10 @@ export const reportIncorrect = mutation({
     if (stats) {
       await ctx.db.patch(stats._id, { count: stats.count + 1 });
     } else {
-      await ctx.db.insert("resultFeedbackStats", { key: "incorrect", count: 1 });
+      await ctx.db.insert("resultFeedbackStats", {
+        key: "incorrect",
+        count: 1,
+      });
     }
     return { ok: true };
   },
@@ -41,5 +44,24 @@ export const incorrectCount = query({
       .withIndex("by_key", (q) => q.eq("key", "incorrect"))
       .unique();
     return stats?.count ?? 0;
+  },
+});
+
+export const reportMissingRole = mutation({
+  args: {
+    role: v.string(),
+    city: v.string(),
+    yearsExperience: v.number(),
+    companyType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("missingRoleReports", {
+      role: args.role.trim().slice(0, 80),
+      city: args.city.trim().slice(0, 80),
+      yearsExperience: Math.max(0, Math.min(50, args.yearsExperience)),
+      companyType: args.companyType.trim().slice(0, 40),
+      createdAt: Date.now(),
+    });
+    return { ok: true };
   },
 });

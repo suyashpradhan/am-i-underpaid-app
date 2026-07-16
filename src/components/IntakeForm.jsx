@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import './IntakeForm.css';
 
-export default function IntakeForm({ onSubmit }) {
-  const [role, setRole] = useState('');
-  const [workDescription, setWorkDescription] = useState('');
-  const [workMode, setWorkMode] = useState('');
-  const [companyType, setCompanyType] = useState('');
-  const [companyHq, setCompanyHq] = useState('');
-  const [compensationType, setCompensationType] = useState('total');
-  const [locationMode, setLocationMode] = useState('city');
-  const [city, setCity] = useState('');
-  const [years, setYears] = useState('');
-  const [salary, setSalary] = useState('');
+export default function IntakeForm({ onSubmit, initialValues = {} }) {
+  const [role, setRole] = useState(initialValues.discipline || '');
+  const [workDescription, setWorkDescription] = useState(initialValues.workDescription || '');
+  const [workMode, setWorkMode] = useState(initialValues.workMode || '');
+  const [companyType, setCompanyType] = useState(initialValues.companyType || '');
+  const [companyHq, setCompanyHq] = useState(initialValues.companyHq === 'Not specified' ? '' : initialValues.companyHq || '');
+  const [compensationType, setCompensationType] = useState(initialValues.compensationType || 'total');
+  const [locationMode, setLocationMode] = useState(initialValues.locationMode || 'city');
+  const [city, setCity] = useState(initialValues.locationMode === 'remote' ? '' : initialValues.city || '');
+  const [years, setYears] = useState(initialValues.years ?? '');
+  const [salary, setSalary] = useState(initialValues.salary ?? '');
 
   const canSubmit =
     role.trim().length >= 2 &&
@@ -132,7 +132,7 @@ export default function IntakeForm({ onSubmit }) {
         </div>
 
         <button type="submit" className="btn btn--primary btn--lg intake__submit" disabled={!canSubmit}>Check my market range <span aria-hidden="true">→</span></button>
-        <p className="intake__footnote">Your salary check is anonymous. Estimates are based on public market evidence.</p>
+        <p className="intake__footnote">Your check is anonymous. Estimates use public data and may be inaccurate—verify before making career decisions.</p>
       </form>
     </main>
   );

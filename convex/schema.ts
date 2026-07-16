@@ -74,4 +74,11 @@ export default defineSchema({
     key: v.literal("incorrect"),
     count: v.number(),
   }).index("by_key", ["key"]),
+  missingRoleReports: defineTable({
+    role: v.string(),
+    city: v.string(),
+    yearsExperience: v.number(),
+    companyType: v.string(),
+    createdAt: v.number(),
+  }).index("by_role", ["role"]),
 });

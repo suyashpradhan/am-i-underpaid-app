@@ -45,9 +45,11 @@ export default function App() {
   const [tipAmount, setTipAmount] = useState("₹20");
   const [paymentPhase, setPaymentPhase] = useState("redirect");
   const [shareOpen, setShareOpen] = useState(false);
+  const [broaderAttempted, setBroaderAttempted] = useState(false);
 
   const getVerdict = useAction(api.payCheck.getVerdict);
   const reportIncorrect = useMutation(api.feedback.reportIncorrect);
+  const reportMissingRole = useMutation(api.feedback.reportMissingRole);
   const checkCount = useQuery(api.checks.count);
   const posthog = usePostHog();
 
@@ -58,8 +60,11 @@ export default function App() {
 
   // IntakeForm submits -> fire the REAL API call, then route on the result.
   const handleFormSubmit = useCallback(
-    async (data: any) => {
-      setFormData(data);
+    async (data: any, preserveOriginal = false) => {
+      if (!preserveOriginal) {
+        setFormData(data);
+        setBroaderAttempted(false);
+      }
       setResultData(null); // clear any previous result so nothing stale can render
       const isFreelancer = data.employment === "freelancer";
 
@@ -166,7 +171,10 @@ export default function App() {
     >
       <div className="app-shell">
         {(screen === "landing" || screen === "intake") && (
-          <IntakeForm onSubmit={handleFormSubmit} />
+          <IntakeForm
+            onSubmit={handleFormSubmit}
+            initialValues={formData || {}}
+          />
         )}
 
         {screen === "calculating" && (
@@ -245,6 +253,46 @@ export default function App() {
             sources={resultData?.sources || []}
             noData={resultData?.noData}
             comparisonSummary={resultData?.comparisonSummary}
+            profile={{
+              role: resultData?.roleLabel,
+              seniority: resultData?.comparisonSummary,
+              location: resultData?.city,
+              currentPay: resultData?.currentAmount,
+            }}
+            canBroaden={
+              !broaderAttempted &&
+              Boolean(formData) &&
+              (formData.companyType !== "unsure" ||
+                formData.companyHq !== "Not specified")
+            }
+            onBroaden={() => {
+              if (!formData) return;
+              setBroaderAttempted(true);
+              posthog?.capture("broader_comparison_requested", {
+                role: formData.discipline,
+                location_mode: formData.locationMode,
+              });
+              void handleFormSubmit(
+                {
+                  ...formData,
+                  companyType: "unsure",
+                  companyHq: "Not specified",
+                },
+                true,
+              );
+            }}
+            onReportMissing={async () => {
+              if (!formData) return;
+              await reportMissingRole({
+                role: String(formData.discipline || "").slice(0, 80),
+                city: String(formData.city || "").slice(0, 80),
+                yearsExperience: Number(formData.years) || 0,
+                companyType: String(formData.companyType || "unsure"),
+              });
+              posthog?.capture("missing_role_reported", {
+                role: formData.discipline,
+              });
+            }}
             onRetry={() => formData && handleFormSubmit(formData)}
             onBackToForm={() => setScreen("intake")}
           />
