@@ -7,7 +7,6 @@ import {
   buildCacheKey,
   computePercentile,
   computeVerdict,
-  fairPoint,
   quoteNumber,
   seniorityLabel,
   skillCoverage,
@@ -41,6 +40,22 @@ const STRUCTURED_SCHEMA = JSON.stringify({
       description:
         "How much reliable current public data exists for this exact role/city/experience.",
     },
+    matchedTitles: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "The exact or closely comparable job titles used to form the band.",
+    },
+    senioritySupported: {
+      type: "boolean",
+      description:
+        "Whether the evidence specifically supports the requested experience/seniority cohort.",
+    },
+    companyContextSupported: {
+      type: "boolean",
+      description:
+        "Whether the evidence supports the requested company type or headquarters pay market.",
+    },
   },
   required: ["bandLow", "median", "bandHigh", "confidence"],
 });
@@ -59,6 +74,7 @@ type VerdictResult = {
   quote: ReturnType<typeof quoteNumber>;
   uncertain: boolean;
   noData: boolean;
+  comparisonSummary: string;
 };
 type LinkupResponse = {
   // Linkup can return null for any field when public data is thin, even though
@@ -68,6 +84,9 @@ type LinkupResponse = {
     bandHigh: number | null;
     median: number | null;
     confidence: Confidence | null;
+    matchedTitles?: string[] | null;
+    senioritySupported?: boolean | null;
+    companyContextSupported?: boolean | null;
   };
   sources: Array<{
     name: string;
@@ -82,6 +101,9 @@ function usableBand(data: LinkupResponse["data"]): data is {
   bandHigh: number;
   median: number;
   confidence: Confidence | null;
+  matchedTitles?: string[] | null;
+  senioritySupported?: boolean | null;
+  companyContextSupported?: boolean | null;
 } {
   const { bandLow, median, bandHigh } = data;
   return (
@@ -101,6 +123,11 @@ function relevantSources(
 ): LinkupResponse["sources"] {
   const normalizedRole = role.toLowerCase();
   const roleFamilies: Array<{ test: RegExp; terms: RegExp }> = [
+    {
+      test: /product designer|product design lead|head of product design/,
+      terms:
+        /product designer|product design lead|ux designer|user experience designer|head of product design/,
+    },
     {
       test: /solutions? engineer|pre[- ]?sales/,
       terms:
@@ -154,6 +181,15 @@ export const getVerdict = action({
     discipline: v.string(),
     workDescription: v.string(),
     workMode: v.union(v.literal("ic"), v.literal("manager")),
+    companyType: v.union(
+      v.literal("early_stage"),
+      v.literal("growth_stage"),
+      v.literal("large_product"),
+      v.literal("services_agency"),
+      v.literal("unsure"),
+    ),
+    companyHq: v.string(),
+    compensationType: v.union(v.literal("fixed"), v.literal("total")),
     locationMode: v.union(v.literal("city"), v.literal("remote")),
     skills: v.array(v.string()),
     city: v.string(),
@@ -172,6 +208,12 @@ export const getVerdict = action({
     if (args.workDescription.length > 240) {
       throw new Error("Work description is too long.");
     }
+    if (args.workDescription.trim().length < 10) {
+      throw new Error("Please describe the work you do.");
+    }
+    if (args.companyHq.length > 80) {
+      throw new Error("Company headquarters is too long.");
+    }
 
     if (args.yearsExperience < 0 || args.yearsExperience > 50) {
       throw new Error("Invalid experience.");
@@ -188,6 +230,9 @@ export const getVerdict = action({
       args.yearsExperience,
       args.workMode,
       args.workDescription,
+      args.companyType,
+      args.companyHq,
+      args.compensationType,
     );
     const cached = await ctx.runQuery(internal.rateCache.get, { cacheKey });
 
@@ -219,16 +264,37 @@ export const getVerdict = action({
         args.workMode === "manager"
           ? "people manager"
           : "individual contributor";
+      const companyLabels = {
+        early_stage: "an early-stage startup (pre-seed through Series A)",
+        growth_stage: "a growth-stage company (Series B through late stage)",
+        large_product:
+          "a large product company, multinational, or public technology company",
+        services_agency: "a services company, consultancy, or agency",
+        unsure: "a company whose stage or type is not known",
+      } as const;
+      const companyContext = companyLabels[args.companyType];
+      const hqContext =
+        args.companyHq === "Not specified"
+          ? "with an unspecified headquarters"
+          : `headquartered in ${args.companyHq}`;
+      const compensationDefinition =
+        args.compensationType === "fixed"
+          ? "annual FIXED/BASE cash salary only; exclude bonus, stock, RSUs, and the value of a multi-year grant"
+          : "TOTAL annual compensation: fixed/base cash plus annual bonus and only the annualised value of equity/RSUs; never count a full multi-year grant in one year";
+      const comparisonSummary = `${seniorityLabel(args.yearsExperience)} ${track}, ${companyContext}, ${hqContext}, in ${args.city}; comparing ${args.compensationType === "fixed" ? "fixed salary" : "total compensation"}.`;
       const buildQuery = (scope: string, cityQualifier: string) =>
         `For a ${seniority} ${track} with the job title "${role}"${cityQualifier}, what is the 25th percentile, median, ` +
-        `and 75th percentile of TOTAL annual compensation (base + bonus + stock/RSUs) in ` +
-        `INR lakhs per annum for ${scope}?${workContext} Interpret the title using those responsibilities, ` +
+        `and 75th percentile of ${compensationDefinition}, in ` +
+        `INR lakhs per annum for ${scope}, working at ${companyContext}, ${hqContext}?${workContext} Interpret the title using those responsibilities, ` +
         `management track, and seniority. Search the exact title plus close market-standard comparable titles; ` +
         `do NOT collapse it into a generic "software engineer" average. Base the ` +
         `figures on this seniority level, NOT on averages across all experience levels. Prefer ` +
         `sources that report pay for this specific role and segment by years of experience or ` +
         `seniority (e.g. levels.fyi role/seniority tiers, published salary guides with role and ` +
-        `experience bands) over sites that report a single all-levels or all-role average. ` +
+        `experience bands) over sites that report a single all-levels or all-role average. Match the company ` +
+        `segment and headquarters pay market where evidence permits. Do not mix agency/services compensation ` +
+        `into a product-company cohort, or vice versa. For Product Designer roles, exclude generic graphic, ` +
+        `visual, UI-only, and web designer averages unless the stated responsibilities genuinely match. ` +
         `Cross-check multiple current sources when possible. Return INR LPA numbers, not rupees, ` +
         `monthly pay, or USD. Do not invent a band when the evidence does not support one. ` +
         `Role-family guardrail: a Solution Engineer is a customer-facing pre-sales/technical solutions role, ` +
@@ -283,8 +349,66 @@ export const getVerdict = action({
         if (d.confidence === "high") d.confidence = "medium";
       }
 
-      const filteredSources = relevantSources(json.sources ?? [], role);
-      const anchor = filteredSources.length
+      // A very large gap, or explicit lack of seniority/company support, is a
+      // mismatch signal. Spend one extra standard search only for these risky
+      // cases instead of making every salary check twice as expensive.
+      if (usableBand(d)) {
+        const extremeGap =
+          args.currentPay > d.bandHigh * 3 || args.currentPay < d.bandLow / 3;
+        const weakCohort =
+          d.senioritySupported === false ||
+          (args.companyType !== "unsure" &&
+            d.companyContextSupported === false);
+        if (extremeGap || weakCohort) {
+          const verification = await callLinkup(
+            `Independently verify a current India compensation band for this exact cohort: ${comparisonSummary} ` +
+              `Job title: "${role}". Responsibilities: "${args.workDescription.slice(0, 240)}". ` +
+              `Return p25, median and p75 in INR LPA. Use sources segmented by the requested seniority and ` +
+              `company context; reject junior, all-experience, generic-role, and wrong-role-family averages. ` +
+              `Use ${compensationDefinition}. Do not infer a low band merely from broad India averages.`,
+          );
+          const vd = verification.data;
+          const verifiedSources = relevantSources(
+            verification.sources ?? [],
+            role,
+          );
+          if (usableBand(vd) && verifiedSources.length > 0) {
+            const medianRatio =
+              Math.max(d.median, vd.median) / Math.min(d.median, vd.median);
+            if (medianRatio > 1.75) {
+              d = {
+                ...d,
+                bandLow: null,
+                median: null,
+                bandHigh: null,
+                confidence: "low",
+              };
+              json.sources = [...json.sources, ...verification.sources];
+            } else if (
+              vd.senioritySupported !== false &&
+              (args.companyType === "unsure" ||
+                vd.companyContextSupported !== false)
+            ) {
+              d = {
+                ...vd,
+                confidence: vd.confidence === "high" ? "medium" : vd.confidence,
+              };
+              json.sources = verification.sources;
+            }
+          } else if (extremeGap && weakCohort) {
+            d = {
+              ...d,
+              bandLow: null,
+              median: null,
+              bandHigh: null,
+              confidence: "low",
+            };
+          }
+        }
+      }
+
+      const finalFilteredSources = relevantSources(json.sources ?? [], role);
+      const anchor = finalFilteredSources.length
         ? (d.median ?? d.bandLow ?? d.bandHigh ?? null)
         : null;
       // Thin public data → Linkup nulls out fields despite the required schema.
@@ -312,7 +436,7 @@ export const getVerdict = action({
           bandHigh: 0,
           median: 0,
           confidence: "low",
-          sources: filteredSources.map((s) => ({
+          sources: finalFilteredSources.map((s) => ({
             name: s.name,
             url: s.url,
           })),
@@ -323,6 +447,7 @@ export const getVerdict = action({
           quote: args.currentPay,
           uncertain: true,
           noData: true,
+          comparisonSummary,
         };
       }
       // Fill any missing bound off the anchor so the band is always usable.
@@ -340,7 +465,7 @@ export const getVerdict = action({
         );
       }
       confidence = d.confidence ?? "low";
-      sources = filteredSources.map((s) => ({ name: s.name, url: s.url }));
+      sources = finalFilteredSources.map((s) => ({ name: s.name, url: s.url }));
 
       await ctx.runMutation(internal.rateCache.set, {
         cacheKey,
@@ -355,9 +480,13 @@ export const getVerdict = action({
       });
     }
 
-    // Layer 2: local, skill-driven placement.
+    const comparisonSummary = `${seniorityLabel(args.yearsExperience)} ${args.workMode === "manager" ? "people manager" : "individual contributor"}, ${args.companyType.replace(/_/g, " ")} company, ${args.companyHq === "Not specified" ? "HQ not specified" : `HQ: ${args.companyHq}`}, in ${args.city}; comparing ${args.compensationType === "fixed" ? "fixed salary" : "total compensation"}.`;
+
+    // With free-text roles there is no preset skill checklist. The cohort
+    // median is the honest negotiation anchor; using skill coverage here made
+    // every new role silently fall back to p25.
     const coverage = skillCoverage(args.discipline, args.skills);
-    const fp = fairPoint(bandLow, bandHigh, coverage);
+    const fp = median;
     const verdict = computeVerdict(args.currentPay, bandLow, bandHigh);
     const percentile = computePercentile(
       args.currentPay,
@@ -398,6 +527,7 @@ export const getVerdict = action({
       quote,
       uncertain,
       noData: false,
+      comparisonSummary,
     };
   },
 });

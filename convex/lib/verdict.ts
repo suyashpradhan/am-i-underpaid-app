@@ -25,6 +25,9 @@ export function buildCacheKey(
   years: number,
   workMode = "ic",
   workDescription = "",
+  companyType = "unsure",
+  companyHq = "not specified",
+  compensationType = "total",
 ): string {
   const context = workDescription.trim().toLowerCase().replace(/\s+/g, " ");
   let contextHash = 2166136261;
@@ -33,7 +36,7 @@ export function buildCacheKey(
     contextHash = Math.imul(contextHash, 16777619);
   }
   const fingerprint = context ? (contextHash >>> 0).toString(36) : "none";
-  return `v2|${discipline.trim().toLowerCase()}|${city.trim().toLowerCase()}|${yearsBucket(years)}|${workMode}|${fingerprint}`;
+  return `v3|${discipline.trim().toLowerCase()}|${city.trim().toLowerCase()}|${yearsBucket(years)}|${workMode}|${companyType}|${companyHq.trim().toLowerCase()}|${compensationType}|${fingerprint}`;
 }
 
 // HAND-CURATED, LABELED AS ESTIMATES. Only the differentiator skills — the ones

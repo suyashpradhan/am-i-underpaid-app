@@ -5,6 +5,9 @@ export default function IntakeForm({ onSubmit }) {
   const [role, setRole] = useState('');
   const [workDescription, setWorkDescription] = useState('');
   const [workMode, setWorkMode] = useState('');
+  const [companyType, setCompanyType] = useState('');
+  const [companyHq, setCompanyHq] = useState('');
+  const [compensationType, setCompensationType] = useState('total');
   const [locationMode, setLocationMode] = useState('city');
   const [city, setCity] = useState('');
   const [years, setYears] = useState('');
@@ -12,7 +15,9 @@ export default function IntakeForm({ onSubmit }) {
 
   const canSubmit =
     role.trim().length >= 2 &&
+    workDescription.trim().length >= 10 &&
     Boolean(workMode) &&
+    Boolean(companyType) &&
     years !== '' &&
     Number(years) >= 0 &&
     salary !== '' &&
@@ -27,6 +32,9 @@ export default function IntakeForm({ onSubmit }) {
       discipline: role.trim(),
       workDescription: workDescription.trim(),
       workMode,
+      companyType,
+      companyHq: companyHq || 'Not specified',
+      compensationType,
       locationMode,
       city: locationMode === 'remote' ? 'Remote — India' : city.trim(),
       years,
@@ -62,6 +70,40 @@ export default function IntakeForm({ onSubmit }) {
         </fieldset>
 
         <fieldset className="field field--spaced">
+          <legend className="field__label">What kind of company is this? <span className="required">*</span></legend>
+          <div className="company-grid">
+            <Choice active={companyType === 'early_stage'} title="Early-stage startup" copy="Pre-seed to Series A" onClick={() => setCompanyType('early_stage')} />
+            <Choice active={companyType === 'growth_stage'} title="Growth-stage company" copy="Series B to late stage" onClick={() => setCompanyType('growth_stage')} />
+            <Choice active={companyType === 'large_product'} title="Large product company" copy="MNC, public or mature product firm" onClick={() => setCompanyType('large_product')} />
+            <Choice active={companyType === 'services_agency'} title="Services or agency" copy="Consulting, IT services or design agency" onClick={() => setCompanyType('services_agency')} />
+            <Choice active={companyType === 'unsure'} title="Not sure" copy="We'll use a broader comparison" onClick={() => setCompanyType('unsure')} />
+          </div>
+        </fieldset>
+
+        <div className="intake__grid intake__grid--context">
+          <div className="field">
+            <label className="field__label" htmlFor="company-hq">Company headquarters <span className="optional">Optional</span></label>
+            <select id="company-hq" value={companyHq} onChange={e => setCompanyHq(e.target.value)}>
+              <option value="">Not sure / prefer not to say</option>
+              <option value="India">India</option>
+              <option value="US or Canada">US or Canada</option>
+              <option value="UK or Europe">UK or Europe</option>
+              <option value="Southeast Asia">Southeast Asia</option>
+              <option value="Other">Other</option>
+            </select>
+            <p className="field__hint">HQ can materially change the pay market.</p>
+          </div>
+          <fieldset className="field">
+            <legend className="field__label">What does your pay include? <span className="required">*</span></legend>
+            <div className="location-toggle compensation-toggle">
+              <button type="button" className={compensationType === 'total' ? 'is-active' : ''} onClick={() => setCompensationType('total')}>Total comp</button>
+              <button type="button" className={compensationType === 'fixed' ? 'is-active' : ''} onClick={() => setCompensationType('fixed')}>Fixed salary</button>
+            </div>
+            <p className="field__hint">Total comp = fixed + bonus + annualised equity.</p>
+          </fieldset>
+        </div>
+
+        <fieldset className="field field--spaced">
           <legend className="field__label">Where do you work? <span className="required">*</span></legend>
           <div className="location-toggle">
             <button type="button" className={locationMode === 'city' ? 'is-active' : ''} onClick={() => setLocationMode('city')}>In a city</button>
@@ -81,7 +123,7 @@ export default function IntakeForm({ onSubmit }) {
             </div>
           </div>
           <div className="field">
-            <label className="field__label" htmlFor="salary">Current total pay <span className="required">*</span></label>
+            <label className="field__label" htmlFor="salary">Current {compensationType === 'fixed' ? 'fixed salary' : 'total pay'} <span className="required">*</span></label>
             <div className="input-with-suffix">
               <input id="salary" type="number" min="0" step="0.1" value={salary} onChange={e => setSalary(e.target.value)} placeholder="24" />
               <span className="input-suffix">LPA</span>

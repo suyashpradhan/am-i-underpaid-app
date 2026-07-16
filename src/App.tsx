@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { usePostHog } from "@posthog/react";
 import { api } from "../convex/_generated/api";
 import "./index.css";
@@ -48,7 +48,6 @@ export default function App() {
 
   const getVerdict = useAction(api.payCheck.getVerdict);
   const reportIncorrect = useMutation(api.feedback.reportIncorrect);
-  const poolCount = useQuery(api.checks.count); // live reactive counter
   const posthog = usePostHog();
 
   useEffect(() => {
@@ -68,6 +67,11 @@ export default function App() {
         discipline: data.discipline,
         city: data.city,
         years: Number(data.years) || 0,
+        work_mode: data.workMode,
+        location_mode: data.locationMode,
+        company_type: data.companyType,
+        company_hq: data.companyHq,
+        compensation_type: data.compensationType,
       });
 
       setScreen("calculating");
@@ -86,6 +90,9 @@ export default function App() {
           skills: data.skills || [],
           workDescription: data.workDescription || "",
           workMode: data.workMode || "ic",
+          companyType: data.companyType || "unsure",
+          companyHq: data.companyHq || "Not specified",
+          compensationType: data.compensationType || "total",
           locationMode: data.locationMode || "city",
           city: (data.city || "").trim() || "Bangalore",
           yearsExperience: Number(data.years) || 0,
@@ -180,7 +187,6 @@ export default function App() {
           <>
             <Result
               {...resultData}
-              poolRank={poolCount ?? undefined}
               tipAmount={tipAmount}
               onTipAmountChange={setTipAmount}
               onRecheck={() => setScreen("intake")}
@@ -295,6 +301,9 @@ function mapResult(res: any, form: any, currentPay: number) {
         : "low",
     uncertain: Boolean(r.uncertain),
     noData: Boolean(r.noData),
+    comparisonSummary:
+      String(r.comparisonSummary || "").trim() ||
+      `${form.workMode === "manager" ? "People managers" : "Individual contributors"} at ${String(form.companyType || "similar").replace(/_/g, " ")} companies, using ${form.compensationType === "fixed" ? "fixed salary" : "total compensation"}.`,
     sources: Array.isArray(r.sources)
       ? r.sources
           .filter((s: any) => s && s.url && s.name)
