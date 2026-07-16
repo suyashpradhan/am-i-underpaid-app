@@ -58,6 +58,19 @@ export default defineSchema({
     dodoRef: v.string(),
   }).index("by_dodoRef", ["dodoRef"]), // idempotency, wired in Phase 4
 
+  razorpayOrders: defineTable({
+    orderId: v.string(),
+    receipt: v.string(),
+    amount: v.number(),
+    currency: v.literal("INR"),
+    status: v.union(v.literal("created"), v.literal("paid")),
+    paymentId: v.optional(v.string()),
+    createdAt: v.number(),
+    verifiedAt: v.optional(v.number()),
+  })
+    .index("by_orderId", ["orderId"])
+    .index("by_paymentId", ["paymentId"]),
+
   // Anonymous trust signal. One row per click keeps the data auditable and
   // lets the product owner inspect problem roles directly in Convex.
   resultFeedback: defineTable({

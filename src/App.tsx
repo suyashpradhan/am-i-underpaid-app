@@ -44,10 +44,13 @@ export default function App() {
   const [resultData, setResultData] = useState<any>(null);
   const [tipAmount, setTipAmount] = useState("₹20");
   const [paymentPhase, setPaymentPhase] = useState("redirect");
+  const [paymentError, setPaymentError] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
   const [broaderAttempted, setBroaderAttempted] = useState(false);
 
   const getVerdict = useAction(api.payCheck.getVerdict);
+  const createRazorpayOrder = useAction(api.razorpay.createOrder);
+  const verifyRazorpayPayment = useAction(api.razorpay.verifyPayment);
   const reportIncorrect = useMutation(api.feedback.reportIncorrect);
   const reportMissingRole = useMutation(api.feedback.reportMissingRole);
   const checkCount = useQuery(api.checks.count);
@@ -136,12 +139,71 @@ export default function App() {
     [getVerdict, posthog],
   );
 
-  function startTip() {
+  async function startTip() {
     posthog?.capture("tip_clicked", { amount: tipAmount });
+    setPaymentError("");
     setPaymentPhase("redirect");
     setScreen("payment");
-    // TODO Phase 4: real Dodo checkout redirect. Simulated for now.
-    setTimeout(() => setPaymentPhase("thankyou"), 1900);
+    try {
+      await loadRazorpayCheckout();
+      const amountRupees = Number(tipAmount.replace(/[^0-9]/g, ""));
+      const order = await createRazorpayOrder({ amountRupees });
+      let completed = false;
+      const checkout = new (window as any).Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Am I Underpaid",
+        description: "Optional coffee tip",
+        order_id: order.orderId,
+        theme: { color: "#fb5d5d" },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => {
+            if (!completed) setPaymentPhase("cancelled");
+          },
+        },
+        handler: async (response: any) => {
+          completed = true;
+          setPaymentPhase("verifying");
+          try {
+            const verified = await verifyRazorpayPayment({
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            if (verified.success) {
+              setPaymentPhase("thankyou");
+              posthog?.capture("tip_verified", { amount: amountRupees });
+            } else if (verified.pending) {
+              setPaymentPhase("pending");
+            } else {
+              throw new Error("Payment was not captured.");
+            }
+          } catch {
+            setPaymentError(
+              "We couldn't verify this payment. Please check Razorpay before trying again.",
+            );
+            setPaymentPhase("error");
+          }
+        },
+      });
+      checkout.on("payment.failed", (response: any) => {
+        completed = true;
+        setPaymentError(
+          response?.error?.description ||
+            "The payment failed. No tip was recorded.",
+        );
+        setPaymentPhase("error");
+        posthog?.capture("tip_failed", {
+          reason: response?.error?.reason || "unknown",
+        });
+      });
+      checkout.open();
+    } catch {
+      setPaymentError("Checkout couldn't be opened. Please try again.");
+      setPaymentPhase("error");
+    }
   }
 
   const shareCardProps = resultData
@@ -236,6 +298,8 @@ export default function App() {
           <Payment
             phase={paymentPhase}
             tipAmount={tipAmount}
+            errorMessage={paymentError}
+            onRetry={startTip}
             onBackToResult={() => setScreen("result")}
           />
         )}
@@ -320,6 +384,24 @@ export default function App() {
       </div>
     </ErrorBoundary>
   );
+}
+
+let razorpayScriptPromise: Promise<void> | null = null;
+function loadRazorpayCheckout(): Promise<void> {
+  if ((window as any).Razorpay) return Promise.resolve();
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      reject(new Error("Razorpay Checkout failed to load."));
+    };
+    document.head.appendChild(script);
+  });
+  return razorpayScriptPromise;
 }
 
 // Maps the Convex getVerdict response + form data into Result's prop shape.

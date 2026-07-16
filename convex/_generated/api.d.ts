@@ -13,6 +13,8 @@ import type * as feedback from "../feedback.js";
 import type * as lib_verdict from "../lib/verdict.js";
 import type * as payCheck from "../payCheck.js";
 import type * as rateCache from "../rateCache.js";
+import type * as razorpay from "../razorpay.js";
+import type * as razorpayData from "../razorpayData.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   "lib/verdict": typeof lib_verdict;
   payCheck: typeof payCheck;
   rateCache: typeof rateCache;
+  razorpay: typeof razorpay;
+  razorpayData: typeof razorpayData;
 }>;
 
 /**

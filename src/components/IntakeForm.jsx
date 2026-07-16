@@ -47,7 +47,6 @@ export default function IntakeForm({ onSubmit, initialValues = {} }) {
     <main className="intake">
       <form className="intake__card" onSubmit={handleSubmit}>
         <h1 className="intake__title">Where do you stand?</h1>
-        <p className="intake__subtitle">A transparent market estimate in about a minute.</p>
 
         <div className="field">
           <label className="field__label" htmlFor="role">Current job title <span className="required">*</span></label>
@@ -132,7 +131,7 @@ export default function IntakeForm({ onSubmit, initialValues = {} }) {
         </div>
 
         <button type="submit" className="btn btn--primary btn--lg intake__submit" disabled={!canSubmit}>Check my market range <span aria-hidden="true">→</span></button>
-        <p className="intake__footnote">Your check is anonymous. Estimates use public data and may be inaccurate—verify before making career decisions.</p>
+        <p className="intake__footnote">Your check is anonymous. Estimates use public data and may be inaccurate.</p>
       </form>
     </main>
   );
