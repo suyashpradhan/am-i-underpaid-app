@@ -18,8 +18,9 @@ const posthogOptions = {
   api_host: posthogHost as string,
   defaults: "2026-05-30",
   autocapture: false,
-  capture_pageview: false,
-  disable_session_recording: true,
+  capture_pageview: true,
+  capture_pageleave: true,
+  disable_session_recording: false,
   person_profiles: "never",
   persistence: "sessionStorage",
 } as const;
